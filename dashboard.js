@@ -500,6 +500,13 @@ document.addEventListener("DOMContentLoaded", () => {
     importFileInput.value = "";
   });
 
+  // 8. Real-time Storage Listener (Auto-updates dashboard when saved from popup)
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === "local" && changes.checkpoints) {
+      loadData();
+    }
+  });
+
   // Initialize
   loadData();
 });

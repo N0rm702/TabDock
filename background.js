@@ -1,14 +1,15 @@
 // Background Service Worker for TabDock Extension
 
-// Init storage on installation
+// Init storage on installation (preserve existing checkpoints if present)
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
-    chrome.storage.local.set({ 
-      checkpoints: [] 
-    }, () => {
-      console.log("TabDock Extension initialized.");
-      // Open the dashboard page to welcome the student
-      chrome.runtime.openOptionsPage();
+    chrome.storage.local.get(["checkpoints"], (data) => {
+      if (!data.checkpoints) {
+        chrome.storage.local.set({ checkpoints: [] }, () => {
+          console.log("TabDock Extension initialized.");
+          chrome.runtime.openOptionsPage();
+        });
+      }
     });
   }
 });
