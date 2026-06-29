@@ -1,0 +1,168 @@
+================================================================================
+            TABDOCK - WORKSPACE MANAGER EXTENSION: COMPLETE PROJECT MATERIALS
+================================================================================
+
+Table of Contents:
+------------------
+1. Executive Overview & Memory Architecture
+2. Chrome Extension Architecture (Manifest V3)
+3. Step-by-Step Build Breakdown & File Structure
+4. Data Schema & Memory Management Model
+5. Source Code Breakdown & API References
+6. Installation & Testing Guide
+
+================================================================================
+1. EXECUTIVE OVERVIEW & MEMORY ARCHITECTURE
+================================================================================
+
+TabDock is a productivity Chrome Extension built for Chrome Manifest V3. 
+It solves the universal problem of tab clutter and browser slowdowns, particularly
+for students and researchers working across multiple context topics simultaneously.
+
+Why Active Tabs Consume Memory (RAM):
+-----------------------------------
+Modern browsers (Google Chrome) use a multi-process architecture where each open tab 
+runs independently with its own V8 JavaScript Engine instance, HTML rendering engine, 
+CSS parser, DOM tree, and media memory caches. 
+
+- Standard Web Tab: ~100 MB to 350 MB RAM
+- Complex Dynamic Web App (YouTube, GitHub, Figma, React apps): ~300 MB to 800+ MB RAM
+- 30 idling tabs can easily consume 4 GB to 10+ GB of active system RAM.
+
+How TabDock Reclaims RAM:
+-------------------------
+Instead of keeping idle tabs open, TabDock extracts lightweight string metadata 
+(URL, Title, and Favicon URL) and saves it to Chrome's persistent local storage 
+(`chrome.storage.local`). 
+
+When tabs are docked to a TabDock workspace instance:
+1. The tab metadata is converted into JSON text.
+2. The user can choose to close the open tabs immediately.
+3. Closing the tabs terminates their underlying operating system renderer processes,
+   reclaiming gigabytes of RAM for CPU, IDEs, compilers, and active tasks.
+4. Storing 50 tabs as JSON in storage takes less than 100 KB of hard drive space and 0 MB of RAM.
+5. Users can restore any docked workspace instance into a dedicated New Window or current background tabs.
+
+================================================================================
+2. CHROME EXTENSION ARCHITECTURE (MANIFEST V3)
+================================================================================
+
+Google Chrome extensions run inside a secure sandbox consisting of three core components:
+
+  +-------------------------------------------------------------------------+
+  |                        GOOGLE CHROME ENGINE                             |
+  +--------------------+--------------------+-------------------------------+
+                       |                    |
+                       v                    v
+        +----------------------+  +-------------------+
+        |  POPUP (popup.html)  |  |     DASHBOARD     |
+        | Quick toolbar window |  | (dashboard.html)  |
+        +----------+-----------+  +---------+---------+
+                   |                        |
+                   +------------+-----------+
+                                |
+                                v
+                +-------------------------------+
+                |     chrome.storage.local      |
+                |   (Persistent database)       |
+                +-------------------------------+
+
+1. Extension Manifest (manifest.json):
+   The central configuration file defining metadata, entry points, and security permissions.
+2. User Interface Pages (popup.html & dashboard.html):
+   Standard HTML/CSS/JS frontend pages rendered inside Chrome windows.
+3. Chrome APIs:
+   Specialized extension primitives (`chrome.tabs`, `chrome.storage`, `chrome.windows`) 
+   allowing access to system tab state, persistent storage, and window management.
+
+================================================================================
+3. STEP-BY-STEP BUILD BREAKDOWN & FILE STRUCTURE
+================================================================================
+
+Workspace Directory: G:\Ext PRoject\SAvingTabs\
+
+Files Included in the Project:
+-----------------------------
+- manifest.json      : Extension blueprint, permissions, entry point mapping.
+- icon.svg           : Modern vector icon with gradient blue/violet base & checkmark.
+- background.js      : Service Worker handling install lifecycle events.
+- popup.html         : Quick-save toolbar menu markup.
+- popup.css          : Light feel-good design system stylesheet for popup.
+- popup.js           : Tab querying, checklist rendering, and save/close controller.
+- dashboard.html     : Full-screen workspace manager dashboard markup.
+- dashboard.css      : Full-screen dashboard responsive grid & modal stylesheet.
+- dashboard.js       : Dashboard controller (search, RAM stats, modal edit, restore modes, export/import).
+
+================================================================================
+4. DATA SCHEMA & MEMORY MANAGEMENT MODEL
+================================================================================
+
+Data Schema (Stored in chrome.storage.local under key "checkpoints"):
+
+Workspace Instance Object:
+{
+  "id": "cp_1719634000000",        // Unique timestamp-based ID
+  "name": "Physics Homework 3",     // Custom user title or default date format
+  "createdAt": 1719634000000,      // Timestamp integer
+  "notes": "Key formulas to use",  // Optional user notes
+  "tabs": [                        // Array of saved tab metadata
+    {
+      "title": "Wikipedia - Physics",
+      "url": "https://en.wikipedia.org/wiki/Physics",
+      "favIconUrl": "https://en.wikipedia.org/static/favicon/wikipedia.ico"
+    }
+  ]
+}
+
+RAM Calculation Metric:
+Estimated RAM Reclaimed = Total Saved Tabs across all instances * 40 MB
+
+================================================================================
+5. SOURCE CODE BREAKDOWN & API REFERENCES
+================================================================================
+
+Key Chrome APIs Used:
+---------------------
+1. chrome.tabs.query({ currentWindow: true }, callback)
+   Retrieves an array of all open tab objects in the active browser window.
+2. chrome.tabs.remove(tabIdsArray)
+   Closes specified tabs by ID, terminating their browser renderer processes.
+3. chrome.tabs.create({ url: string, active: boolean })
+   Creates a new tab in the current window.
+4. chrome.windows.create({ url: urlsArray, focused: true })
+   Creates a brand new separate browser window containing the specified array of URLs.
+5. chrome.storage.local.get(keys, callback) / set(object, callback)
+   Asynchronously reads and writes JSON data to the local hard disk storage.
+
+Features & Functionality Implemented:
+--------------------------------------
+- Selective Tab Checklist: Users can uncheck non-relevant tabs (e.g. music/social media) 
+  before docking, keeping them open while archiving work tabs.
+- Flexible Restoration (Split-Button): Option to restore workspaces into a "New Window" 
+  or background tabs in the "Current Window".
+- Light Design System: Soft grey borders (#e2e8f0), crisp dark slate typography (#0f172a), 
+  and solid indigo accents (#4f46e5).
+- Direct Deletion: Instant deletion with confirmation dialogs both from the popup recent list 
+  and the dashboard manager.
+- Export/Import Backups: Full JSON export and import parsing for backup migration (`tabdock_backup.json`).
+
+================================================================================
+6. INSTALLATION & TESTING GUIDE
+================================================================================
+
+How to Load the Extension in Google Chrome:
+------------------------------------------
+1. Open Google Chrome.
+2. Navigate to: chrome://extensions/
+3. Enable "Developer mode" using the toggle switch in the top-right corner.
+4. Click "Load unpacked" in the top-left corner.
+5. Select the folder: G:\Ext PRoject\SAvingTabs
+6. Pin "TabDock - Workspace Manager" to your Chrome extension toolbar.
+
+Verifying Functionality:
+------------------------
+1. Open multiple tabs in Chrome.
+2. Click the TabDock extension icon in the toolbar.
+3. Give the instance a name, select/unselect tabs from the checklist, and click "Save & Close Tabs".
+4. Notice that checked tabs close, freeing RAM, and the Dashboard opens.
+5. Click "Restore" (choose New Window or Current Window) to launch your docked workspace!

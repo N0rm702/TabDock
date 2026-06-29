@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TabDock Dashboard - Workspaces</title>
+  <meta name="description" content="Manage and restore your browser workspaces. Declutter your Chrome and restore grouped tabs in clean windows when you need them.">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <div class="dashboard-layout">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <svg class="sidebar-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="32" height="32">
+          <defs>
+            <linearGradient id="dbLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#6366f1" />
+              <stop offset="100%" stop-color="#a855f7" />
+            </linearGradient>
+          </defs>
+          <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#dbLogoGrad)" stroke="#a78bfa" stroke-width="2" />
+          <rect x="36" y="38" width="60" height="48" rx="8" fill="#ffffff" fill-opacity="0.25" stroke="#ffffff" stroke-width="4" />
+          <path d="M 48 62 L 60 74 L 84 50" fill="none" stroke="#22d3ee" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span class="logo-text">TabDock</span>
+      </div>
+
+      <!-- Gamified Memory Reclaimed Stats Box -->
+      <div class="stats-box">
+        <h3>System Impact</h3>
+        <div class="stat-item">
+          <span class="stat-label">Workspaces</span>
+          <span class="stat-val" id="stat-checkpoints">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Saved Tabs</span>
+          <span class="stat-val" id="stat-tabs">0</span>
+        </div>
+        <div class="stat-item highlight">
+          <span class="stat-label">RAM Reclaimed</span>
+          <span class="stat-val" id="stat-ram">0 MB</span>
+        </div>
+        <div class="stat-footer">
+          *Estimating ~40MB saved per closed tab
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Utility Header -->
+      <header class="content-header">
+        <div class="search-container">
+          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="dashboard-search" placeholder="Search workspaces, tab titles, URLs, notes..." autocomplete="off">
+        </div>
+        
+        <div class="header-actions">
+          <button id="btn-export" class="secondary-btn btn-with-icon" title="Backup workspaces to a JSON file">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Export
+          </button>
+          <button id="btn-import" class="secondary-btn btn-with-icon" title="Restore workspaces from a JSON file">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Import
+          </button>
+          <input type="file" id="import-file-input" style="display: none;" accept=".json">
+        </div>
+      </header>
+
+      <!-- Active Filter Display -->
+      <section class="active-filter-bar">
+        <h1 id="active-category-title">Saved Workspaces</h1>
+        <p id="active-category-desc">Manage your docked workspaces. Open any set in a new window at any time.</p>
+      </section>
+
+      <!-- Checkpoint Cards Grid -->
+      <section class="checkpoint-grid" id="checkpoint-grid">
+        <!-- Rendered dynamically -->
+      </section>
+
+      <!-- Empty State -->
+      <section class="grid-empty-state hidden" id="grid-empty-state">
+        <div class="empty-icon-wrapper">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </div>
+        <h2>No Workspaces Found</h2>
+        <p>No saved workspaces match your search. Save your open tabs in the extension popup to get started!</p>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="checkpoint-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <header class="modal-header">
+        <div class="modal-header-title">
+          <input type="text" id="modal-cp-name" class="editable-title-input" value="Checkpoint Name">
+          <div class="modal-meta">
+            <span class="modal-date" id="modal-cp-date">June 26, 2026</span>
+          </div>
+        </div>
+        <button id="btn-close-modal" class="icon-btn" aria-label="Close Modal">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </header>
+
+      <div class="modal-body">
+        
+        <!-- Notes section -->
+        <div class="modal-section">
+          <label for="modal-cp-notes">Notes & Reminders</label>
+          <textarea id="modal-cp-notes" rows="2" placeholder="Write any context, homework instructions, or references here..."></textarea>
+        </div>
+
+        <!-- Add URL inline -->
+        <div class="modal-section">
+          <label>Add Tab to Workspace</label>
+          <div class="inline-add-tab">
+            <input type="text" id="new-tab-title" class="flex-2" placeholder="Page Title (e.g. Wikipedia Physics)">
+            <input type="text" id="new-tab-url" class="flex-3" placeholder="https://example.com">
+            <button id="btn-modal-add-tab" class="secondary-btn">Add Tab</button>
+          </div>
+        </div>
+
+        <!-- Tabs list inside checkpoint -->
+        <div class="modal-section">
+          <label id="modal-tab-count-label">Tabs in this Workspace (0)</label>
+          <div id="modal-tabs-list" class="modal-tabs-list-container">
+            <!-- Dynamically populated list of tabs -->
+          </div>
+        </div>
+
+      </div>
+
+      <footer class="modal-footer">
+        <button id="modal-btn-delete" class="delete-btn btn-with-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          Delete Workspace
+        </button>
+        <div class="footer-right-buttons">
+          <button id="modal-btn-save" class="secondary-btn">Save Changes</button>
+          <div class="restore-control-group">
+            <button id="modal-btn-restore" class="primary-gradient-btn modal-launch-btn">Restore</button>
+            <select id="modal-restore-select" class="restore-select">
+              <option value="new">New Window</option>
+              <option value="current">Current Window</option>
+            </select>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+  </defs>
+  <!-- Background Rounded Rect -->
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bgGrad)" stroke="#60a5fa" stroke-width="2" />
+  
+  <!-- Outer Checkpoint Layer (Shadow tab shape) -->
+  <rect x="28" y="28" width="72" height="54" rx="8" fill="#ffffff" fill-opacity="0.2" stroke="#ffffff" stroke-width="3" stroke-dasharray="4,4" />
+  
+  <!-- Primary Checkpoint Card / Tab Shape -->
+  <rect x="36" y="38" width="60" height="48" rx="8" fill="#ffffff" fill-opacity="0.35" stroke="#ffffff" stroke-width="4" />
+  
+  <!-- Solid White Checkmark representing a Checkpoint saved -->
+  <path d="M 48 62 L 60 74 L 84 50" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
