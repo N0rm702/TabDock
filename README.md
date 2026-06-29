@@ -11,9 +11,7 @@ Built for students, developers, and power users who work across multiple context
 - ⚡ **RAM Reclamation:** Instantly close idling tabs to free up system memory for CPU-heavy tasks, compilers, and IDEs.
 - 🎯 **Selective Tab Docking:** Choose exactly which open tabs to dock into a workspace using an interactive checklist.
 - 🪟 **Flexible Restoration Modes:** Restore docked workspaces into a **New Window** or background tabs in the **Current Window**.
-- 🔍 **Full-Text Workspace Search:** Instantly search through saved workspaces, tab titles, URLs, and custom notes.
-- 📊 **Live System Impact Analytics:** Real-time metrics showing total workspaces, saved tabs, and estimated RAM freed (~40MB per tab).
-- 💾 **JSON Backup Export & Import:** Backup your docked workspaces or migrate them across different computers effortlessly.
+- 🔍 **All-in-One Popup Hub:** Access, search, restore, and delete all your saved workspaces directly from the extension toolbar popup — zero annoying redirects!
 - 🎨 **Modern Light Aesthetic:** Clean, spacious Notion-style UI with soft shadows, high-contrast typography, and zero clutter.
 
 ---

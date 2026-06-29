@@ -15,7 +15,6 @@
   "background": {
     "service_worker": "background.js"
   },
-  "options_page": "dashboard.html",
   "icons": {
     "16": "icon.svg",
     "48": "icon.svg",

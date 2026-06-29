@@ -8,13 +8,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnSaveClose = document.getElementById("btn-save-close");
   const btnSaveKeep = document.getElementById("btn-save-keep");
   const recentList = document.getElementById("recent-list");
-  const lnkDashboard = document.getElementById("lnk-dashboard");
-  const btnOpenDashboard = document.getElementById("btn-open-dashboard");
   const tabsListSelect = document.getElementById("tabs-list-select");
   const btnToggleSelectAll = document.getElementById("btn-toggle-select-all");
+  const workspaceSearch = document.getElementById("workspace-search");
+  const totalWorkspacesCount = document.getElementById("total-workspaces-count");
 
   let allTabs = [];
   let selectAllState = true; // true = "Deselect All", false = "Select All"
+  let searchQuery = "";
+  const expandedWorkspaceIds = new Set();
 
   // 1. Initialize Default Name
   const formatDefaultName = () => {
@@ -28,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 2. Fetch Open Tabs in current window & Render Checklist
   chrome.tabs.query({ currentWindow: true }, (tabs) => {
     // Filter out extensions and chrome pages
-    allTabs = tabs.filter(tab => !tab.url.startsWith("chrome-extension://"));
+    allTabs = tabs.filter(tab => tab.url && !tab.url.startsWith("chrome-extension://"));
     
     renderTabsChecklist();
     updateSelectionCount();
@@ -172,18 +174,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       chrome.storage.local.set({ checkpoints: checkpoints }, () => {
         if (shouldCloseTabs) {
-          // Open the dashboard page so the user doesn't end up with an empty browser window
-          const dashboardUrl = chrome.runtime.getURL("dashboard.html");
-          chrome.tabs.create({ url: dashboardUrl }, () => {
-            // Close ONLY the saved tabs in the current window
-            const tabIdsToClose = selectedTabs.map(t => t.id).filter(id => id !== undefined);
-            if (tabIdsToClose.length > 0) {
-              chrome.tabs.remove(tabIdsToClose);
-            }
-            window.close(); // Close popup
-          });
+          const tabIdsToClose = selectedTabs.map(t => t.id).filter(id => id !== undefined);
+          if (tabIdsToClose.length > 0) {
+            chrome.tabs.remove(tabIdsToClose);
+          }
+          window.close(); // Close popup
         } else {
-          // Flash success animation, reload popup list, or close window
+          // Flash success animation & reload list
           const originalText = btnSaveKeep.textContent;
           btnSaveKeep.textContent = "Saved Successfully ✓";
           btnSaveKeep.style.background = "var(--success-color)";
@@ -194,7 +191,6 @@ document.addEventListener("DOMContentLoaded", () => {
             btnSaveKeep.style.background = "";
             btnSaveKeep.style.color = "";
             loadRecentCheckpoints();
-            setTimeout(() => window.close(), 500);
           }, 1000);
         }
       });
@@ -214,29 +210,60 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${Math.floor(elapsed / 86400)}d ago`;
   };
 
-  // 4. Load & Render Recent Checkpoints (limit to 4)
+  // 4. Load & Render All Saved Workspaces
   const loadRecentCheckpoints = () => {
     chrome.storage.local.get(["checkpoints"], (data) => {
-      const checkpoints = (data.checkpoints || []).map(cp => ({
+      let checkpoints = (data.checkpoints || []).map(cp => ({
         ...cp,
         name: cp.name || "Untitled Workspace",
+        notes: cp.notes || "",
         tabs: Array.isArray(cp.tabs) ? cp.tabs : []
       }));
       
+      if (totalWorkspacesCount) {
+        totalWorkspacesCount.textContent = `${checkpoints.length} saved`;
+      }
+
       // Sort: newest first
       checkpoints.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      const recents = checkpoints.slice(0, 4);
 
-      if (recents.length === 0) {
-        recentList.innerHTML = `<div class="empty-state">No saved workspaces yet. Create one above!</div>`;
+      // Apply search query filter if typed
+      if (searchQuery.trim() !== "") {
+        const q = searchQuery.toLowerCase().trim();
+        checkpoints = checkpoints.filter(cp => {
+          const inName = cp.name.toLowerCase().includes(q);
+          const inNotes = cp.notes.toLowerCase().includes(q);
+          const inTabs = cp.tabs.some(t => (t.title && t.title.toLowerCase().includes(q)) || (t.url && t.url.toLowerCase().includes(q)));
+          return inName || inNotes || inTabs;
+        });
+      }
+
+      if (checkpoints.length === 0) {
+        recentList.innerHTML = `<div class="empty-state">${searchQuery ? "No matching workspaces found." : "No saved workspaces yet. Create one above!"}</div>`;
         return;
       }
 
       recentList.innerHTML = "";
-      recents.forEach(checkpoint => {
+      checkpoints.forEach(checkpoint => {
+        const cardContainer = document.createElement("div");
+        cardContainer.className = "workspace-card-wrapper";
+
         const item = document.createElement("div");
         item.className = "checkpoint-item";
         
+        const headerClickable = document.createElement("div");
+        headerClickable.className = "item-header-clickable";
+        headerClickable.title = "Click to view tabs";
+
+        const btnToggleDropdown = document.createElement("button");
+        btnToggleDropdown.className = "chevron-toggle-btn";
+        btnToggleDropdown.setAttribute("aria-label", "Toggle Tabs List");
+        btnToggleDropdown.innerHTML = `
+          <svg class="chevron-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        `;
+
         const info = document.createElement("div");
         info.className = "checkpoint-info";
         
@@ -263,6 +290,9 @@ document.addEventListener("DOMContentLoaded", () => {
         
         info.appendChild(title);
         info.appendChild(meta);
+
+        headerClickable.appendChild(btnToggleDropdown);
+        headerClickable.appendChild(info);
         
         const restoreGroup = document.createElement("div");
         restoreGroup.className = "restore-control-group compact-group";
@@ -279,7 +309,8 @@ document.addEventListener("DOMContentLoaded", () => {
           <option value="current">Current</option>
         `;
 
-        btnRestore.addEventListener("click", () => {
+        btnRestore.addEventListener("click", (e) => {
+          e.stopPropagation();
           const urls = checkpoint.tabs.map(t => t.url).filter(Boolean);
           if (urls.length === 0) return;
           const mode = selectRestore.value;
@@ -296,6 +327,8 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         });
         
+        selectRestore.addEventListener("click", (e) => e.stopPropagation());
+
         restoreGroup.appendChild(btnRestore);
         restoreGroup.appendChild(selectRestore);
         
@@ -308,11 +341,12 @@ document.addEventListener("DOMContentLoaded", () => {
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
           </svg>
         `;
-        btnDelete.addEventListener("click", () => {
+        btnDelete.addEventListener("click", (e) => {
+          e.stopPropagation();
           if (confirm(`Are you sure you want to delete "${checkpoint.name}"?`)) {
             chrome.storage.local.get(["checkpoints"], (data) => {
-              const checkpoints = data.checkpoints || [];
-              const updated = checkpoints.filter(cp => cp.id !== checkpoint.id);
+              const checkpointsArr = data.checkpoints || [];
+              const updated = checkpointsArr.filter(cp => cp.id !== checkpoint.id);
               chrome.storage.local.set({ checkpoints: updated }, () => {
                 loadRecentCheckpoints();
               });
@@ -325,12 +359,203 @@ document.addEventListener("DOMContentLoaded", () => {
         actionsGroup.appendChild(restoreGroup);
         actionsGroup.appendChild(btnDelete);
         
-        item.appendChild(info);
+        item.appendChild(headerClickable);
         item.appendChild(actionsGroup);
-        recentList.appendChild(item);
+
+        // Dropdown tabs menu container
+        const dropdownList = document.createElement("div");
+        const isInitiallyExpanded = expandedWorkspaceIds.has(checkpoint.id);
+        dropdownList.className = `checkpoint-tabs-dropdown ${isInitiallyExpanded ? "" : "hidden"}`;
+        if (isInitiallyExpanded) {
+          btnToggleDropdown.classList.add("expanded");
+        }
+
+        const tabsRowsContainer = document.createElement("div");
+        tabsRowsContainer.className = "dropdown-tabs-rows";
+
+        if (checkpoint.tabs.length === 0) {
+          tabsRowsContainer.innerHTML = `<div class="dropdown-empty">No tabs in this workspace yet. Add one below!</div>`;
+        } else {
+          checkpoint.tabs.forEach((tab, index) => {
+            const tabRow = document.createElement("div");
+            tabRow.className = "dropdown-tab-row";
+
+            // Favicon
+            if (tab.favIconUrl && !tab.favIconUrl.startsWith("chrome://")) {
+              const img = document.createElement("img");
+              img.className = "dropdown-tab-favicon";
+              img.src = tab.favIconUrl;
+              img.onerror = () => {
+                img.style.display = "none";
+                tabRow.insertAdjacentHTML("afterbegin", `<span class="dropdown-tab-favicon-fallback"></span>`);
+              };
+              tabRow.appendChild(img);
+            } else {
+              const fallback = document.createElement("span");
+              fallback.className = "dropdown-tab-favicon-fallback";
+              tabRow.appendChild(fallback);
+            }
+
+            // Title link
+            const tabLink = document.createElement("a");
+            tabLink.className = "dropdown-tab-link";
+            tabLink.textContent = tab.title || tab.url || "Untitled Tab";
+            tabLink.title = `${tab.title}\n${tab.url}`;
+            tabLink.href = "#";
+            tabLink.addEventListener("click", (e) => {
+              e.preventDefault();
+              if (tab.url) {
+                chrome.tabs.create({ url: tab.url });
+              }
+            });
+            tabRow.appendChild(tabLink);
+
+            // Remove individual tab button
+            const btnRemoveTab = document.createElement("button");
+            btnRemoveTab.className = "btn-remove-tab";
+            btnRemoveTab.title = "Remove tab from workspace";
+            btnRemoveTab.innerHTML = "&times;";
+            btnRemoveTab.addEventListener("click", (e) => {
+              e.stopPropagation();
+              chrome.storage.local.get(["checkpoints"], (data) => {
+                const checkpointsArr = data.checkpoints || [];
+                const cpIdx = checkpointsArr.findIndex(c => c.id === checkpoint.id);
+                if (cpIdx !== -1) {
+                  checkpointsArr[cpIdx].tabs.splice(index, 1);
+                  chrome.storage.local.set({ checkpoints: checkpointsArr }, () => {
+                    loadRecentCheckpoints();
+                  });
+                }
+              });
+            });
+            tabRow.appendChild(btnRemoveTab);
+
+            tabsRowsContainer.appendChild(tabRow);
+          });
+        }
+
+        dropdownList.appendChild(tabsRowsContainer);
+
+        // Add Tab Tools Footer inside Dropdown
+        const addActionsFooter = document.createElement("div");
+        addActionsFooter.className = "dropdown-add-footer";
+
+        // Button: Add Current Active Tab
+        const btnAddActiveTab = document.createElement("button");
+        btnAddActiveTab.className = "btn-add-active-tab";
+        btnAddActiveTab.title = "Add the current browser tab to this workspace";
+        btnAddActiveTab.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Add Current Active Tab
+        `;
+        btnAddActiveTab.addEventListener("click", (e) => {
+          e.stopPropagation();
+          chrome.tabs.query({ active: true, currentWindow: true }, (activeTabs) => {
+            if (activeTabs && activeTabs[0]) {
+              const activeTab = activeTabs[0];
+              const newTabData = {
+                url: activeTab.url || "",
+                title: activeTab.title || activeTab.url || "Untitled Tab",
+                favIconUrl: activeTab.favIconUrl || ""
+              };
+              chrome.storage.local.get(["checkpoints"], (data) => {
+                const checkpointsArr = data.checkpoints || [];
+                const cpIdx = checkpointsArr.findIndex(c => c.id === checkpoint.id);
+                if (cpIdx !== -1) {
+                  checkpointsArr[cpIdx].tabs.push(newTabData);
+                  chrome.storage.local.set({ checkpoints: checkpointsArr }, () => {
+                    loadRecentCheckpoints();
+                  });
+                }
+              });
+            }
+          });
+        });
+
+        // Custom URL inline input form
+        const customFormRow = document.createElement("div");
+        customFormRow.className = "dropdown-custom-form";
+
+        const inputCustomUrl = document.createElement("input");
+        inputCustomUrl.type = "text";
+        inputCustomUrl.placeholder = "Or paste URL / title...";
+        inputCustomUrl.className = "input-custom-url";
+        inputCustomUrl.addEventListener("click", (e) => e.stopPropagation());
+
+        const btnSubmitCustom = document.createElement("button");
+        btnSubmitCustom.className = "btn-submit-custom";
+        btnSubmitCustom.textContent = "Add";
+        btnSubmitCustom.title = "Add typed link";
+
+        const submitCustomLink = (e) => {
+          if (e) e.stopPropagation();
+          const val = inputCustomUrl.value.trim();
+          if (!val) return;
+          let urlVal = val;
+          if (!urlVal.startsWith("http://") && !urlVal.startsWith("https://") && urlVal.includes(".")) {
+            urlVal = "https://" + urlVal;
+          }
+          const newTabData = {
+            url: urlVal,
+            title: val,
+            favIconUrl: ""
+          };
+          chrome.storage.local.get(["checkpoints"], (data) => {
+            const checkpointsArr = data.checkpoints || [];
+            const cpIdx = checkpointsArr.findIndex(c => c.id === checkpoint.id);
+            if (cpIdx !== -1) {
+              checkpointsArr[cpIdx].tabs.push(newTabData);
+              chrome.storage.local.set({ checkpoints: checkpointsArr }, () => {
+                loadRecentCheckpoints();
+              });
+            }
+          });
+        };
+
+        btnSubmitCustom.addEventListener("click", submitCustomLink);
+        inputCustomUrl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            submitCustomLink(e);
+          }
+        });
+
+        customFormRow.appendChild(inputCustomUrl);
+        customFormRow.appendChild(btnSubmitCustom);
+
+        addActionsFooter.appendChild(btnAddActiveTab);
+        addActionsFooter.appendChild(customFormRow);
+        dropdownList.appendChild(addActionsFooter);
+
+        // Toggle dropdown visibility action
+        const toggleDropdown = (e) => {
+          if (e) e.stopPropagation();
+          const isHidden = dropdownList.classList.contains("hidden");
+          if (isHidden) {
+            dropdownList.classList.remove("hidden");
+            btnToggleDropdown.classList.add("expanded");
+            expandedWorkspaceIds.add(checkpoint.id);
+          } else {
+            dropdownList.classList.add("hidden");
+            btnToggleDropdown.classList.remove("expanded");
+            expandedWorkspaceIds.delete(checkpoint.id);
+          }
+        };
+
+        headerClickable.addEventListener("click", toggleDropdown);
+
+        cardContainer.appendChild(item);
+        cardContainer.appendChild(dropdownList);
+        recentList.appendChild(cardContainer);
       });
     });
   };
+
+  if (workspaceSearch) {
+    workspaceSearch.addEventListener("input", (e) => {
+      searchQuery = e.target.value;
+      loadRecentCheckpoints();
+    });
+  }
 
   // Realtime storage listener for popup
   chrome.storage.onChanged.addListener((changes, namespace) => {
@@ -340,14 +565,4 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   loadRecentCheckpoints();
-
-  // 5. Navigation Links
-  const openDashboard = (e) => {
-    if (e) e.preventDefault();
-    chrome.tabs.create({ url: "dashboard.html" });
-    window.close();
-  };
-
-  lnkDashboard.addEventListener("click", openDashboard);
-  btnOpenDashboard.addEventListener("click", openDashboard);
 });

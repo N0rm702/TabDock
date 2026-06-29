@@ -47,30 +47,28 @@ When tabs are docked to a TabDock workspace instance:
 2. CHROME EXTENSION ARCHITECTURE (MANIFEST V3)
 ================================================================================
 
-Google Chrome extensions run inside a secure sandbox consisting of three core components:
+Google Chrome extensions run inside a secure sandbox consisting of two core components:
 
   +-------------------------------------------------------------------------+
   |                        GOOGLE CHROME ENGINE                             |
-  +--------------------+--------------------+-------------------------------+
-                       |                    |
-                       v                    v
-        +----------------------+  +-------------------+
-        |  POPUP (popup.html)  |  |     DASHBOARD     |
-        | Quick toolbar window |  | (dashboard.html)  |
-        +----------+-----------+  +---------+---------+
-                   |                        |
-                   +------------+-----------+
-                                |
-                                v
-                +-------------------------------+
-                |     chrome.storage.local      |
-                |   (Persistent database)       |
-                +-------------------------------+
+  +-------------------------------------+-----------------------------------+
+                                        |
+                                        v
+                         +------------------------------+
+                         |      POPUP (popup.html)      |
+                         | Complete Workspaces Hub App  |
+                         +--------------+---------------+
+                                        |
+                                        v
+                        +-------------------------------+
+                        |     chrome.storage.local      |
+                        |   (Persistent database)       |
+                        +-------------------------------+
 
 1. Extension Manifest (manifest.json):
    The central configuration file defining metadata, entry points, and security permissions.
-2. User Interface Pages (popup.html & dashboard.html):
-   Standard HTML/CSS/JS frontend pages rendered inside Chrome windows.
+2. User Interface Page (popup.html):
+   Standard HTML/CSS/JS frontend page rendered directly inside the extension popup window.
 3. Chrome APIs:
    Specialized extension primitives (`chrome.tabs`, `chrome.storage`, `chrome.windows`) 
    allowing access to system tab state, persistent storage, and window management.
@@ -85,13 +83,10 @@ Files Included in the Project:
 -----------------------------
 - manifest.json      : Extension blueprint, permissions, entry point mapping.
 - icon.svg           : Modern vector icon with gradient blue/violet base & checkmark.
-- background.js      : Service Worker handling install lifecycle events.
-- popup.html         : Quick-save toolbar menu markup.
-- popup.css          : Light feel-good design system stylesheet for popup.
-- popup.js           : Tab querying, checklist rendering, and save/close controller.
-- dashboard.html     : Full-screen workspace manager dashboard markup.
-- dashboard.css      : Full-screen dashboard responsive grid & modal stylesheet.
-- dashboard.js       : Dashboard controller (search, RAM stats, modal edit, restore modes, export/import).
+- background.js      : Service Worker handling lifecycle events.
+- popup.html         : Complete Workspaces Hub & Tab Docking markup.
+- popup.css          : Light feel-good design system stylesheet.
+- popup.js           : Tab querying, checklist rendering, search filtering, and workspace controller.
 
 ================================================================================
 4. DATA SCHEMA & MEMORY MANAGEMENT MODEL
@@ -140,11 +135,10 @@ Features & Functionality Implemented:
   before docking, keeping them open while archiving work tabs.
 - Flexible Restoration (Split-Button): Option to restore workspaces into a "New Window" 
   or background tabs in the "Current Window".
+- All-Workspaces Hub in Popup: Access, search, restore, and delete all saved workspaces 
+  directly from the toolbar popup with zero annoying page redirects.
 - Light Design System: Soft grey borders (#e2e8f0), crisp dark slate typography (#0f172a), 
   and solid indigo accents (#4f46e5).
-- Direct Deletion: Instant deletion with confirmation dialogs both from the popup recent list 
-  and the dashboard manager.
-- Export/Import Backups: Full JSON export and import parsing for backup migration (`tabdock_backup.json`).
 
 ================================================================================
 6. INSTALLATION & TESTING GUIDE
@@ -164,5 +158,5 @@ Verifying Functionality:
 1. Open multiple tabs in Chrome.
 2. Click the TabDock extension icon in the toolbar.
 3. Give the instance a name, select/unselect tabs from the checklist, and click "Save & Close Tabs".
-4. Notice that checked tabs close, freeing RAM, and the Dashboard opens.
+4. Notice that checked tabs close, freeing RAM, and your workspace appears instantly in the Saved Workspaces list below!
 5. Click "Restore" (choose New Window or Current Window) to launch your docked workspace!

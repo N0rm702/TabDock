@@ -7,7 +7,6 @@ chrome.runtime.onInstalled.addListener((details) => {
       if (!data.checkpoints) {
         chrome.storage.local.set({ checkpoints: [] }, () => {
           console.log("TabDock Extension initialized.");
-          chrome.runtime.openOptionsPage();
         });
       }
     });

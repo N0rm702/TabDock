@@ -29,14 +29,6 @@
         </svg>
         <h1 id="main-title">TabDock</h1>
       </div>
-      <button id="btn-open-dashboard" class="icon-btn" title="Open Full Dashboard" aria-label="Open Dashboard">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="7" height="9" />
-          <rect x="14" y="3" width="7" height="5" />
-          <rect x="14" y="12" width="7" height="9" />
-          <rect x="3" y="16" width="7" height="5" />
-        </svg>
-      </button>
     </header>
 
     <!-- Main Content Tab Saver -->
@@ -48,7 +40,7 @@
       <!-- Quick Save Form -->
       <section class="save-section">
         <div class="form-group">
-          <label for="instance-name">Instance Name</label>
+          <label for="instance-name">Workspace Name</label>
           <input type="text" id="instance-name" placeholder="e.g., Physics Assignment 3" autocomplete="off">
         </div>
 
@@ -80,19 +72,25 @@
 
       <hr class="divider">
 
-      <!-- Recent Workspaces List -->
+      <!-- Saved Workspaces List Hub -->
       <section class="recent-section">
-        <h2>Recent Instances</h2>
+        <div class="recent-header-row">
+          <h2>Saved Workspaces</h2>
+          <span id="total-workspaces-count" class="workspaces-count-badge">0 saved</span>
+        </div>
+        <div class="search-box-popup">
+          <input type="text" id="workspace-search" placeholder="Search workspaces, links..." autocomplete="off">
+        </div>
         <div id="recent-list" class="recent-list-container">
           <!-- Dynamically populated -->
-          <div class="empty-state">No saved instances yet. Create one above!</div>
+          <div class="empty-state">No saved workspaces yet. Create one above!</div>
         </div>
       </section>
     </main>
 
     <!-- Footer -->
     <footer class="app-footer">
-      <a id="lnk-dashboard" href="#" class="footer-link">Go to Full Dashboard &rarr;</a>
+      <span class="footer-tagline">TabDock • Workspace &amp; RAM Vault</span>
     </footer>
   </div>
   <script src="popup.js"></script>
