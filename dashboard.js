@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const updateStats = () => {
     statCheckpoints.textContent = checkpoints.length;
     
-    const totalTabsCount = checkpoints.reduce((sum, cp) => sum + cp.tabs.length, 0);
+    const totalTabsCount = checkpoints.reduce((sum, cp) => sum + ((cp && cp.tabs) ? cp.tabs.length : 0), 0);
     statTabs.textContent = totalTabsCount;
     
     // Estimate 40MB per tab
@@ -76,7 +76,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // 1. Initial Load of Extension Data
   const loadData = () => {
     chrome.storage.local.get(["checkpoints"], (data) => {
-      checkpoints = data.checkpoints || [];
+      checkpoints = (data.checkpoints || []).map(cp => ({
+        ...cp,
+        name: cp.name || "Untitled Workspace",
+        notes: cp.notes || "",
+        tabs: Array.isArray(cp.tabs) ? cp.tabs : []
+      }));
       
       updateStats();
       renderCheckpointGrid();
@@ -93,18 +98,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (activeSearch.trim() !== "") {
       const query = activeSearch.toLowerCase().trim();
       filtered = filtered.filter(cp => {
-        const inName = cp.name.toLowerCase().includes(query);
-        const inNotes = cp.notes.toLowerCase().includes(query);
-        const inTabs = cp.tabs.some(tab => 
-          tab.title.toLowerCase().includes(query) || 
-          tab.url.toLowerCase().includes(query)
-        );
+        const cpName = (cp.name || "").toLowerCase();
+        const cpNotes = (cp.notes || "").toLowerCase();
+        const inName = cpName.includes(query);
+        const inNotes = cpNotes.includes(query);
+        const inTabs = Array.isArray(cp.tabs) && cp.tabs.some(tab => {
+          const tabTitle = (tab && tab.title) ? tab.title.toLowerCase() : "";
+          const tabUrl = (tab && tab.url) ? tab.url.toLowerCase() : "";
+          return tabTitle.includes(query) || tabUrl.includes(query);
+        });
         return inName || inNotes || inTabs;
       });
     }
 
     // Sort: newest first
-    filtered.sort((a, b) => b.createdAt - a.createdAt);
+    filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
     if (filtered.length === 0) {
       gridEmptyState.classList.remove("hidden");
@@ -125,7 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
       const dateSpan = document.createElement("span");
       dateSpan.className = "card-date";
-      dateSpan.textContent = getRelativeTime(checkpoint.createdAt);
+      dateSpan.textContent = getRelativeTime(checkpoint.createdAt || Date.now());
       
       header.appendChild(dateSpan);
 
@@ -143,12 +151,14 @@ document.addEventListener("DOMContentLoaded", () => {
       faviconStrip.className = "card-favicons";
       
       const maxFavicons = 6;
-      const displayTabs = checkpoint.tabs.slice(0, maxFavicons);
+      const cpTabs = Array.isArray(checkpoint.tabs) ? checkpoint.tabs : [];
+      const displayTabs = cpTabs.slice(0, maxFavicons);
       
       displayTabs.forEach(tab => {
+        if (!tab) return;
         const wrap = document.createElement("div");
         wrap.className = "favicon-wrapper";
-        wrap.title = tab.title;
+        wrap.title = tab.title || tab.url || "";
 
         // Chrome extension URLs or general icons
         if (tab.favIconUrl && !tab.favIconUrl.startsWith("chrome://")) {
@@ -169,10 +179,10 @@ document.addEventListener("DOMContentLoaded", () => {
         faviconStrip.appendChild(wrap);
       });
 
-      if (checkpoint.tabs.length > maxFavicons) {
+      if (cpTabs.length > maxFavicons) {
         const moreSpan = document.createElement("span");
         moreSpan.className = "favicon-more";
-        moreSpan.textContent = `+${checkpoint.tabs.length - maxFavicons}`;
+        moreSpan.textContent = `+${cpTabs.length - maxFavicons}`;
         faviconStrip.appendChild(moreSpan);
       }
 

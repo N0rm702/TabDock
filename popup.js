@@ -138,22 +138,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // 3. Save Checkpoint Core Logic
   const saveCheckpoint = (shouldCloseTabs) => {
     const checkboxes = tabsListSelect.querySelectorAll("input[type='checkbox']");
-    const checkedTabIds = Array.from(checkboxes)
+    const checkedTabIdStrings = Array.from(checkboxes)
       .filter(cb => cb.checked)
-      .map(cb => parseInt(cb.dataset.tabId, 10));
+      .map(cb => String(cb.dataset.tabId));
 
-    if (checkedTabIds.length === 0) return;
+    if (checkedTabIdStrings.length === 0) return;
 
     // Filter allTabs to get only checked ones
-    const selectedTabs = allTabs.filter(tab => checkedTabIds.includes(tab.id));
+    const selectedTabs = allTabs.filter(tab => tab && tab.id !== undefined && checkedTabIdStrings.includes(String(tab.id)));
 
     const name = instanceNameInput.value.trim() || formatDefaultName();
     const notes = instanceNotes.value.trim();
 
     // Map tab items
     const tabsData = selectedTabs.map(tab => ({
-      url: tab.url,
-      title: tab.title || tab.url,
+      url: tab.url || "",
+      title: tab.title || tab.url || "Untitled Tab",
       favIconUrl: tab.favIconUrl || ""
     }));
 
@@ -173,10 +173,13 @@ document.addEventListener("DOMContentLoaded", () => {
       chrome.storage.local.set({ checkpoints: checkpoints }, () => {
         if (shouldCloseTabs) {
           // Open the dashboard page so the user doesn't end up with an empty browser window
-          chrome.tabs.create({ url: "dashboard.html" }, () => {
-            // Close ONLY the saved tabs in the current window (except our newly created dashboard tab)
-            const tabIdsToClose = checkedTabIds.filter(id => id !== undefined && !isNaN(id));
-            chrome.tabs.remove(tabIdsToClose);
+          const dashboardUrl = chrome.runtime.getURL("dashboard.html");
+          chrome.tabs.create({ url: dashboardUrl }, () => {
+            // Close ONLY the saved tabs in the current window
+            const tabIdsToClose = selectedTabs.map(t => t.id).filter(id => id !== undefined);
+            if (tabIdsToClose.length > 0) {
+              chrome.tabs.remove(tabIdsToClose);
+            }
             window.close(); // Close popup
           });
         } else {
@@ -201,17 +204,31 @@ document.addEventListener("DOMContentLoaded", () => {
   btnSaveClose.addEventListener("click", () => saveCheckpoint(true));
   btnSaveKeep.addEventListener("click", () => saveCheckpoint(false));
 
-  // 4. Load & Render Recent Checkpoints (limit to 3)
+  // Helper: Relative Time Formatter
+  const getRelativeTime = (timestamp) => {
+    if (!timestamp) return "recently";
+    const elapsed = Math.floor((Date.now() - timestamp) / 1000);
+    if (elapsed < 60) return "just now";
+    if (elapsed < 3600) return `${Math.floor(elapsed / 60)}m ago`;
+    if (elapsed < 86400) return `${Math.floor(elapsed / 3600)}h ago`;
+    return `${Math.floor(elapsed / 86400)}d ago`;
+  };
+
+  // 4. Load & Render Recent Checkpoints (limit to 4)
   const loadRecentCheckpoints = () => {
     chrome.storage.local.get(["checkpoints"], (data) => {
-      const checkpoints = data.checkpoints || [];
+      const checkpoints = (data.checkpoints || []).map(cp => ({
+        ...cp,
+        name: cp.name || "Untitled Workspace",
+        tabs: Array.isArray(cp.tabs) ? cp.tabs : []
+      }));
       
       // Sort: newest first
-      checkpoints.sort((a, b) => b.createdAt - a.createdAt);
-      const recents = checkpoints.slice(0, 3);
+      checkpoints.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      const recents = checkpoints.slice(0, 4);
 
       if (recents.length === 0) {
-        recentList.innerHTML = `<div class="empty-state">No saved instances yet. Create one!</div>`;
+        recentList.innerHTML = `<div class="empty-state">No saved workspaces yet. Create one above!</div>`;
         return;
       }
 
@@ -233,9 +250,17 @@ document.addEventListener("DOMContentLoaded", () => {
         
         const tabCount = document.createElement("span");
         tabCount.className = "tab-count";
-        tabCount.textContent = `${checkpoint.tabs.length} tab${checkpoint.tabs.length !== 1 ? 's' : ''}`;
+        const len = checkpoint.tabs.length;
+        tabCount.textContent = `${len} tab${len !== 1 ? 's' : ''}`;
         
+        const timeSpan = document.createElement("span");
+        timeSpan.className = "time-ago";
+        timeSpan.textContent = getRelativeTime(checkpoint.createdAt);
+
         meta.appendChild(tabCount);
+        meta.appendChild(document.createTextNode(" • "));
+        meta.appendChild(timeSpan);
+        
         info.appendChild(title);
         info.appendChild(meta);
         
@@ -255,7 +280,7 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
 
         btnRestore.addEventListener("click", () => {
-          const urls = checkpoint.tabs.map(t => t.url);
+          const urls = checkpoint.tabs.map(t => t.url).filter(Boolean);
           if (urls.length === 0) return;
           const mode = selectRestore.value;
           
@@ -278,7 +303,7 @@ document.addEventListener("DOMContentLoaded", () => {
         btnDelete.className = "recent-delete-btn";
         btnDelete.title = "Delete Workspace";
         btnDelete.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
           </svg>
@@ -306,6 +331,13 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   };
+
+  // Realtime storage listener for popup
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === "local" && changes.checkpoints) {
+      loadRecentCheckpoints();
+    }
+  });
 
   loadRecentCheckpoints();
 

@@ -27,7 +27,7 @@
 }
 
 body {
-  width: 380px;
+  width: 390px;
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-family-sans);
@@ -333,14 +333,14 @@ button {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 160px;
+  max-height: 200px;
   overflow-y: auto;
   padding-right: 4px;
 }
 
 /* Custom Scrollbar */
 .recent-list-container::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 .recent-list-container::-webkit-scrollbar-track {
@@ -363,23 +363,24 @@ button {
   align-items: center;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-radius: 8px;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
+  gap: 10px;
 }
 
 .checkpoint-item:hover {
   border-color: #cbd5e1;
   box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
 }
 
 .checkpoint-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  max-width: 70%;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
 }
 
 .checkpoint-title {
@@ -394,7 +395,7 @@ button {
 .checkpoint-meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   font-size: 11px;
   color: var(--text-secondary);
 }
@@ -402,31 +403,46 @@ button {
 .tab-count {
   background: #f1f5f9;
   color: var(--text-secondary);
-  padding: 2px 6px;
+  padding: 1px 6px;
   border-radius: 4px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.restore-control-group {
+.time-ago {
+  color: var(--text-muted);
+}
+
+.checkpoint-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.restore-control-group.compact-group {
   display: flex;
   border-radius: 6px;
   overflow: hidden;
   border: 1px solid #dbeafe;
   box-shadow: var(--shadow-sm);
+  height: 28px;
 }
 
 .restore-action-btn {
   background: #eff6ff;
   border: none;
   color: #2563eb;
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 0 10px;
+  font-size: 11px;
   font-weight: 600;
-  border-top-left-radius: 6px;
-  border-bottom-left-radius: 6px;
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
+  cursor: pointer;
   transition: all 0.15s ease-in-out;
+  display: flex;
+  align-items: center;
 }
 
 .restore-action-btn:hover {
@@ -442,14 +458,14 @@ button {
   font-family: var(--font-family-sans);
   font-size: 11px;
   font-weight: 600;
-  padding: 5px 6px;
-  border-top-right-radius: 6px;
-  border-bottom-right-radius: 6px;
+  padding: 0 4px;
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
   outline: none;
   cursor: pointer;
-  max-width: 80px;
+  height: 100%;
   transition: all 0.15s ease-in-out;
 }
 
@@ -457,29 +473,25 @@ button {
   background: #dbeafe;
 }
 
-.checkpoint-actions-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .recent-delete-btn {
   background: #fff5f5;
   border: 1px solid #fee2e2;
-  color: var(--danger-color);
-  padding: 6px;
+  color: #ef4444;
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.15s ease-in-out;
+  flex-shrink: 0;
 }
 
 .recent-delete-btn:hover {
-  background: var(--danger-color);
+  background: #ef4444;
   color: #ffffff;
-  border-color: var(--danger-color);
+  border-color: #ef4444;
 }
 
 .empty-state {
